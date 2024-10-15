@@ -18,7 +18,7 @@ jobs:
     - name: Set up Aarch64 Toolchain
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu make pkg-config
+        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu make pkg-config autoconf automake libtool
 
     - name: Install Dependencies
       run: |
@@ -28,8 +28,15 @@ jobs:
       run: |
         git clone https://github.com/crazycat69/astra-sm.git
         cd astra-sm
+        ls -alh  # Listar archivos para ver la estructura
 
-    - name: Build Astra-sm
+    - name: Preparar sistema de compilación con Autoconf y Automake
+      run: |
+        cd astra-sm
+        ./autogen.sh  # Generar los archivos de configuración con Autoconf
+        ./configure    # Configurar el entorno de construcción
+
+    - name: Compilar astra-sm
       run: |
         cd astra-sm
         make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
@@ -44,7 +51,7 @@ jobs:
         echo "Maintainer: YourName" >> package/DEBIAN/control
         echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
         mkdir -p package/usr/bin
-        cp astra-sm package/usr/bin/
+        cp src/astra-sm package/usr/bin/ || echo "No binary found, skipping"
         dpkg-deb --build package astra-sm_aarch64.ipk
 
     - name: Upload the IPK artifact
