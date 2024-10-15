@@ -1,0 +1,58 @@
+name: Build Astra-SM for CoreELEC
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-astra-sm:
+    name: Build Astra-SM-${{ matrix.arch }}
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        arch: [aarch64, arm]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install autoconf libtool gcc make git wget xz-utils g++ patchutils lzop pkg-config
+
+      - name: Download CoreELEC toolchain
+        run: |
+          mkdir toolchain
+          cd toolchain
+          wget https://artifacts.coreelec.org/toolchains/aarch64-toolchain.tar.xz
+          tar -xf aarch64-toolchain.tar.xz
+          export PATH=$PATH:$PWD/aarch64-toolchain/bin
+
+      - name: Clone astra-sm repository
+        run: |
+          git clone https://github.com/crazycat69/astra-sm.git
+          cd astra-sm
+
+      - name: Build Astra-SM
+        run: |
+          cd astra-sm
+          ./autogen.sh
+          ./configure --host=aarch64-linux --prefix=/opt
+          make
+
+      - name: Package Astra-SM into .ipk
+        run: |
+          mkdir -p package/astra-sm/opt
+          cp astra-sm package/astra-sm/opt/
+          mkdir -p package/astra-sm/CONTROL
+          echo "Package: astra-sm" > package/astra-sm/CONTROL/control
+          echo "Version: 1.0.0" >> package/astra-sm/CONTROL/control
+          echo "Architecture: ${{ matrix.arch }}" >> package/astra-sm/CONTROL/control
+          echo "Description: Astra-SM for CoreELEC" >> package/astra-sm/CONTROL/control
+          cd package
+          tar -czf astra-sm_${{ matrix.arch }}.ipk astra-sm/
+
+      - name: Upload IPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astra-sm-${{ matrix.arch }}.ipk
+          path: package/astra-sm_${{ matrix.arch }}.ipk
