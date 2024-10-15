@@ -36,6 +36,11 @@ jobs:
       run: |
         cd astra-sm
         make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
+    - name: Verificar la estructura de archivos
+      run: |
+        cd astra-sm
+        ls -alh src/astra  # Verificar si los binarios se han creado en src/astra
+
     - name: Crear archivos .tar.gz
       run: |
         mkdir -p package/DEBIAN
@@ -69,5 +74,6 @@ jobs:
       with:
         name: astra-sm_aarch64.ipk
         path: astra-sm_aarch64.ipk
+
 
 
