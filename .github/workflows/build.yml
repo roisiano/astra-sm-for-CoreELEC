@@ -4,41 +4,38 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Clone Astra SM repository
+      - name: Set up build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git pkg-config liblua5.2-dev
+
+      - name: Clone Astra SM
         run: git clone https://github.com/crazycat69/astra-sm.git
 
-      - name: Change directory to astra-sm
-        run: cd astra-sm
-
-      - name: Generate version.txt
-        run: echo "version=\"$(git describe --tags)\"" > astra-sm/version.txt
-
-      - name: Build the project
+      - name: Build Astra SM
         run: |
           cd astra-sm
           ./autogen.sh
           ./configure --host=aarch64
           make
 
-      - name: Create IPK file
+      - name: Create IPK Package
         run: |
           cd astra-sm
-          make package
+          make ipk
 
-      - name: Upload artifact
+      - name: Upload IPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: astra-sm_$(git describe --tags).ipk
-          path: astra-sm/aarch64/astra-sm_*.ipk
+          name: astra-sm_aarch64.ipk
+          path: astra-sm/*.ipk
+
