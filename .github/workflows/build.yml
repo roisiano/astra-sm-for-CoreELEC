@@ -1,43 +1,56 @@
-name: Build astra-sm for CoreELEC
+name: Build Astra-sm for CoreELEC (aarch64)
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
-
+  build-astra-sm:
+    runs-on: ubuntu-latest
     steps:
-    - name: Set up environment
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Aarch64 Toolchain
       run: |
         sudo apt-get update
-        sudo apt-get install -y autoconf libtool gcc make git wget xz-utils g++ patchutils lzop pkg-config
+        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu make pkg-config
 
-    - name: Clone astra-sm repository
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install -y cmake git build-essential
+
+    - name: Clonar astra-sm
       run: |
         git clone https://github.com/crazycat69/astra-sm.git
-        cd astra
-        git checkout <commit-or-branch> # Opcional: checkout a un commit o branch específico
+        cd astra-sm
 
-    - name: Build astra-sm
+    - name: Build Astra-sm
       run: |
-        cd astra
-        ./autogen.sh
-        ./configure --host=aarch64-linux --target=aarch64-linux
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_TOOLCHAIN_FILE=../Toolchain-aarch64.cmake
         make
 
-    - name: Package as .ipk
+    - name: Package Astra-sm into .ipk
       run: |
-        cd astra
-        make install DESTDIR=$PWD/install_root
-        cd install_root
-        tar -czvf astra-sm-coreelec.aarch64.ipk ./*
+        cd build
+        mkdir -p package/DEBIAN
+        echo "Package: astra-sm" > package/DEBIAN/control
+        echo "Version: 1.0" >> package/DEBIAN/control
+        echo "Architecture: aarch64" >> package/DEBIAN/control
+        echo "Maintainer: YourName" >> package/DEBIAN/control
+        echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
+        mkdir -p package/usr/bin
+        cp astra-sm package/usr/bin/
+        dpkg-deb --build package astra-sm_aarch64.ipk
 
-    - name: Upload .ipk Artifact
+    - name: Upload the IPK artifact
       uses: actions/upload-artifact@v3
       with:
-        name: astra-sm-coreelec.aarch64.ipk
-        path: ./astra/install_root/astra-sm-coreelec.aarch64.ipk
-
+        name: astra-sm_aarch64.ipk
+        path: build/astra-sm_aarch64.ipk
