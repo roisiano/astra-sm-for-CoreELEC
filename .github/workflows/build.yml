@@ -36,20 +36,39 @@ jobs:
       run: |
         cd astra-sm
         make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
-    - name: Package Astra-sm into .ipk
+    - name: Crear estructura de paquete
       run: |
-        cd astra-sm
         mkdir -p package/DEBIAN
         echo "Package: astra-sm" > package/DEBIAN/control
-        echo "Version: 1.0" >> package/DEBIAN/control
+        echo "Version: 0.2.88-4" >> package/DEBIAN/control
         echo "Architecture: aarch64" >> package/DEBIAN/control
         echo "Maintainer: YourName" >> package/DEBIAN/control
         echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
         mkdir -p package/usr/bin
         cp -r src/astra package/usr/bin/ || echo "No binary found, skipping"
-        dpkg-deb --build package astra-sm_aarch64.ipk
+
+    - name: Crear archivos .tar.gz
+      run: |
+        cd package
+        tar -czf control.tar.gz DEBIAN
+        tar -czf data.tar.gz usr
+        echo "2.0" > debian-binary  # Archivo indicando la versión de Debian
+
+    - name: Empaquetar en .ipk
+      run: |
+        mkdir -p astra-sm_0.2.88-4_aarch64-3.10
+        mv control.tar.gz astra-sm_0.2.88-4_aarch64-3.10/
+        mv data.tar.gz astra-sm_0.2.88-4_aarch64-3.10/
+        mv debian-binary astra-sm_0.2.88-4_aarch64-3.10/
+        cd astra-sm_0.2.88-4_aarch64-3.10
+        mkdir -p ../astra-sm_0.2.88-4_aarch64-3.10
+        mv * ../astra-sm_0.2.88-4_aarch64-3.10/
+        cd ..
+        tar -czf astra-sm_0.2.88-4_aarch64-3.10.ipk astra-sm_0.2.88-4_aarch64-3.10
+
     - name: Upload the IPK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: astra-sm_aarch64.ipk
-        path: astra-sm/astra-sm_aarch64.ipk
+        name: astra-sm_0.2.88-4_aarch64-3.10.ipk
+        path: astra-sm_0.2.88-4_aarch64-3.10.ipk
+
