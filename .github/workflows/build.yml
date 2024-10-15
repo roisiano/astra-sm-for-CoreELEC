@@ -17,7 +17,7 @@ jobs:
 
     - name: Clone astra-sm repository
       run: |
-        git clone https://github.com/catalinii/astra.git
+        git clone https://github.com/crazycat69/astra-sm.git
         cd astra
         git checkout <commit-or-branch> # Opcional: checkout a un commit o branch específico
 
