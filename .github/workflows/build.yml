@@ -22,7 +22,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        sudo apt-get install -y cmake git build-essential
+        sudo apt-get install -y git build-essential
 
     - name: Clonar astra-sm
       run: |
@@ -31,14 +31,12 @@ jobs:
 
     - name: Build Astra-sm
       run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_TOOLCHAIN_FILE=../Toolchain-aarch64.cmake
-        make
+        cd astra-sm
+        make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
 
     - name: Package Astra-sm into .ipk
       run: |
-        cd build
+        cd astra-sm
         mkdir -p package/DEBIAN
         echo "Package: astra-sm" > package/DEBIAN/control
         echo "Version: 1.0" >> package/DEBIAN/control
@@ -53,4 +51,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: astra-sm_aarch64.ipk
-        path: build/astra-sm_aarch64.ipk
+        path: astra-sm/astra-sm_aarch64.ipk
