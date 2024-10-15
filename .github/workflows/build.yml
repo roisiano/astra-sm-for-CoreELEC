@@ -46,7 +46,7 @@ jobs:
         echo "Maintainer: YourName" >> package/DEBIAN/control
         echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
         mkdir -p package/usr/bin
-        cp src/astra package/usr/bin/ || echo "No binary found, skipping"
+        cp -r src/astra package/usr/bin/ || echo "No binary found, skipping"
         dpkg-deb --build package astra-sm_aarch64.ipk
     - name: Upload the IPK artifact
       uses: actions/upload-artifact@v4
