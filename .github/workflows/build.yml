@@ -36,7 +36,7 @@ jobs:
       run: |
         cd astra-sm
         make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
-    - name: Crear estructura de paquete
+    - name: Crear archivos .tar.gz
       run: |
         mkdir -p package/DEBIAN
         echo "Package: astra-sm" > package/DEBIAN/control
@@ -46,9 +46,8 @@ jobs:
         echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
         mkdir -p package/usr/bin
         cp -r src/astra package/usr/bin/ || echo "No binary found, skipping"
-
-    - name: Crear archivos .tar.gz
-      run: |
+        
+        # Cambiar al directorio de paquetes para crear los tar.gz
         cd package
         tar -czf control.tar.gz DEBIAN
         tar -czf data.tar.gz usr
@@ -61,14 +60,14 @@ jobs:
         mv data.tar.gz astra-sm_0.2.88-4_aarch64-3.10/
         mv debian-binary astra-sm_0.2.88-4_aarch64-3.10/
         cd astra-sm_0.2.88-4_aarch64-3.10
-        mkdir -p ../astra-sm_0.2.88-4_aarch64-3.10
-        mv * ../astra-sm_0.2.88-4_aarch64-3.10/
+        tar -czf ../astra-sm_aarch64.ipk .  # Cambia el nombre aquí si es necesario
         cd ..
-        tar -czf astra-sm_0.2.88-4_aarch64-3.10.ipk astra-sm_0.2.88-4_aarch64-3.10
+        rm -rf astra-sm_0.2.88-4_aarch64-3.10  # Limpia la carpeta temporal
 
     - name: Upload the IPK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: astra-sm_0.2.88-4_aarch64-3.10.ipk
-        path: astra-sm_0.2.88-4_aarch64-3.10.ipk
+        name: astra-sm_aarch64.ipk
+        path: astra-sm_aarch64.ipk
+
 
