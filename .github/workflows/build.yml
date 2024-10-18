@@ -32,7 +32,7 @@ jobs:
         cd astra-sm
         ./autogen.sh  # Generar los archivos de configuración con Autoconf
         ./configure    # Configurar el entorno de construcción
-    - name: Compilar astra-sm
+    - name: Compilar e instalar astra-sm
       run: |
         cd astra-sm
         make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
@@ -47,7 +47,7 @@ jobs:
         echo "Maintainer: YourName" >> package/DEBIAN/control
         echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
         mkdir -p package/usr/bin
-        cp -r src/astra package/usr/bin/ || echo "No binary found, skipping"
+        cp /usr/local/bin/astra package/usr/bin/ || echo "No binary found, skipping"
         cd package
         tar czf control.tar.gz -C DEBIAN .
         tar czf data.tar.gz -C usr .
