@@ -36,6 +36,7 @@ jobs:
       run: |
         cd astra-sm
         make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
+        sudo make install
     - name: Package Astra-sm into .ipk
       run: |
         cd astra-sm
