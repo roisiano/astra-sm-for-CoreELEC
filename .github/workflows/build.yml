@@ -1,79 +1,72 @@
 name: Build Astra-sm for CoreELEC (aarch64)
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+push:
+branches:
+•  main
+
+pull_request:
+branches:
+•  main
+
 
 jobs:
-  build-astra-sm:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+build-astra-sm:
+runs-on: ubuntu-latest
+steps:
+•  name: Checkout repository
 
-    - name: Set up Aarch64 Toolchain
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu make pkg-config autoconf automake libtool
-    - name: Install Dependencies
-      run: |
-        sudo apt-get install -y git build-essential
-    - name: Clonar astra-sm
-      run: |
-        git clone https://github.com/crazycat69/astra-sm.git
-        cd astra-sm
-        ls -alh  # Listar archivos para ver la estructura
-    - name: Preparar sistema de compilación con Autoconf y Automake
-      run: |
-        cd astra-sm
-        ./autogen.sh  # Generar los archivos de configuración con Autoconf
-        ./configure    # Configurar el entorno de construcción
-    - name: Compilar astra-sm
-      run: |
-        cd astra-sm
-        make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
-    - name: Verificar la estructura de archivos
-      run: |
-        cd astra-sm
-        ls -alh src/astra  # Verificar si los binarios se han creado en src/astra
+uses: actions/checkout@v4
 
-    - name: Crear archivos .tar.gz
-      run: |
-        mkdir -p package/DEBIAN
-        echo "Package: astra-sm" > package/DEBIAN/control
-        echo "Version: 0.2.88-4" >> package/DEBIAN/control
-        echo "Architecture: aarch64" >> package/DEBIAN/control
-        echo "Maintainer: YourName" >> package/DEBIAN/control
-        echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
-        mkdir -p package/usr/bin
-        cp -r src/astra package/usr/bin/ || echo "No binary found, skipping"
-        
-        # Cambiar al directorio de paquetes para crear los tar.gz
-        cd package
-        tar -czf control.tar.gz DEBIAN
-        tar -czf data.tar.gz usr
-        echo "2.0" > debian-binary  # Archivo indicando la versión de Debian
+•  name: Set up Aarch64 Toolchain
 
-    - name: Empaquetar en .ipk
-      run: |
-        mkdir -p astra-sm_0.2.88-4_aarch64-3.10
-        mv control.tar.gz astra-sm_0.2.88-4_aarch64-3.10/
-        mv data.tar.gz astra-sm_0.2.88-4_aarch64-3.10/
-        mv debian-binary astra-sm_0.2.88-4_aarch64-3.10/
-        cd astra-sm_0.2.88-4_aarch64-3.10
-        tar -czf ../astra-sm_aarch64.ipk .  # Cambia el nombre aquí si es necesario
-        cd ..
-        rm -rf astra-sm_0.2.88-4_aarch64-3.10  # Limpia la carpeta temporal
+run: |
+sudo apt-get update
+sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu make pkg-config autoconf automake libtool
+•  name: Install Dependencies
 
-    - name: Upload the IPK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: astra-sm_aarch64.ipk
-        path: astra-sm_aarch64.ipk
+run: |
+sudo apt-get install -y git build-essential
+•  name: Clonar astra-sm
+
+run: |
+git clone https://github.com/crazycat69/astra-sm.git
+cd astra-sm
+ls -alh  # Listar archivos para ver la estructura
+•  name: Preparar sistema de compilación con Autoconf y Automake
+
+run: |
+cd astra-sm
+./autogen.sh  # Generar los archivos de configuración con Autoconf
+./configure    # Configurar el entorno de construcción
+•  name: Compilar astra-sm
+
+run: |
+cd astra-sm
+make ARCH=aarch64 CROSS_COMPILE=aarch64-linux-gnu-
+•  name: Package Astra-sm into .ipk
+
+run: |
+cd astra-sm
+mkdir -p package/DEBIAN
+echo "Package: astra-sm" > package/DEBIAN/control
+echo "Version: 1.0" >> package/DEBIAN/control
+echo "Architecture: aarch64" >> package/DEBIAN/control
+echo "Maintainer: YourName" >> package/DEBIAN/control
+echo "Description: Astra-sm for CoreELEC" >> package/DEBIAN/control
+mkdir -p package/usr/bin
+cp -r src/astra package/usr/bin/ || echo "No binary found, skipping"
+cd package
+tar czf control.tar.gz -C DEBIAN .
+tar czf data.tar.gz -C usr .
+echo "2.0" > debian-binary
+ar rcs ../astra-sm_1.0_aarch64.ipk debian-binary control.tar.gz data.tar.gz
+•  name: Upload the IPK artifact
+
+uses: actions/upload-artifact@v4
+with:
+name: astra-sm_aarch64.ipk
+path: astra-sm/astra-sm_1.0_aarch64.ipk
 
 
 
