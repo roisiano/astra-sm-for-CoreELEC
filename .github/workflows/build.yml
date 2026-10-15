@@ -1,72 +1,66 @@
-name: Debug Build Astra-sm
+name: Build Astra-sm for CoreELEC (aarch64)
 
 on:
   workflow_dispatch:
 
 jobs:
-  debug-astra:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install dependencies
+
+      - name: Install build environment
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             build-essential \
             gcc-aarch64-linux-gnu \
             g++-aarch64-linux-gnu \
+            make \
+            pkg-config \
             autoconf \
             automake \
             autopoint \
             libtool \
             libltdl-dev \
             gettext \
-            pkg-config \
-            make \
+            m4 \
             tree
 
-      - name: Clone repository
+      - name: Clone Astra-sm
         run: |
           git clone https://github.com/crazycat69/astra-sm.git
           cd astra-sm
 
-          echo "========================="
-          echo "ROOT DIRECTORY CONTENTS"
-          echo "========================="
-
+          echo "===== ROOT ====="
           ls -al
 
-          echo
-          echo "========================="
-          echo "COMPLETE TREE"
-          echo "========================="
+          echo "===== TREE ====="
+          tree -L 4 || true
 
-          tree -L 3
-
-      - name: Detect build files
+      - name: Locate build files
         run: |
           cd astra-sm
 
-          echo
-          echo "Searching build files..."
+          echo "===== BUILD FILES ====="
 
-          find . -name configure
-          find . -name configure.ac
-          find . -name configure.in
-          find . -name autogen.sh
-          find . -name Makefile.am
-          find . -name Makefile.in
+          find . -name "configure"
+          find . -name "configure.ac"
+          find . -name "configure.in"
+          find . -name "autogen.sh"
+          find . -name "bootstrap*"
+          find . -name "Makefile.am"
+          find . -name "Makefile.in"
 
       - name: Show configure.ac
         run: |
           cd astra-sm
 
           if [ -f configure.ac ]; then
-            echo "configure.ac found"
-            sed -n '1,150p' configure.ac
-          else
-            echo "configure.ac NOT found"
+            echo "===== configure.ac ====="
+            sed -n '1,250p' configure.ac
           fi
 
       - name: Show autogen.sh
@@ -74,54 +68,129 @@ jobs:
           cd astra-sm
 
           if [ -f autogen.sh ]; then
-            echo "autogen.sh found"
-            sed -n '1,200p' autogen.sh
-          else
-            echo "autogen.sh NOT found"
+            echo "===== autogen.sh ====="
+            sed -n '1,250p' autogen.sh
           fi
 
-      - name: Run autogen with debugging
+      - name: Generate configure scripts
         run: |
           cd astra-sm
+
+          set +e
 
           if [ -f autogen.sh ]; then
             chmod +x autogen.sh
             bash -x ./autogen.sh
-          else
-            echo "autogen.sh not present"
           fi
 
-      - name: Show generated files
-        if: always()
-        run: |
-          cd astra-sm
+          if [ ! -f configure ]; then
+            echo "Trying manual autotools..."
+
+            libtoolize --force --copy || true
+
+            aclocal -I build-aux/m4 || aclocal || true
+
+            autoheader || true
+
+            automake --add-missing --copy || true
+
+            autoconf || true
+          fi
 
           echo
-          echo "AFTER AUTOGEN"
+          echo "===== GENERATED FILES ====="
 
-          find . -maxdepth 2 -name configure
-          find . -maxdepth 2 -name Makefile.in
+          find . -name configure
+          find . -name Makefile.in
 
-      - name: Configure manually
-        if: always()
+      - name: Configure
         run: |
           cd astra-sm
 
           export CC=aarch64-linux-gnu-gcc
           export CXX=aarch64-linux-gnu-g++
 
-          if [ -f configure ]; then
-            ./configure --host=aarch64-linux-gnu
-          else
-            echo "configure was not generated"
+          if [ ! -f configure ]; then
+            echo "configure not generated"
             exit 1
           fi
 
-      - name: Upload logs
+          chmod +x configure
+
+          ./configure \
+            --host=aarch64-linux-gnu \
+            --build=x86_64-linux-gnu
+
+      - name: Build
+        run: |
+          cd astra-sm
+
+          make -j$(nproc)
+
+      - name: Search generated binaries
+        if: always()
+        run: |
+          cd astra-sm
+
+          echo "===== EXECUTABLE FILES ====="
+
+          find . -type f -executable | sort
+
+      - name: Create package
+        if: success()
+        run: |
+          cd astra-sm
+
+          mkdir -p package/CONTROL
+          mkdir -p package/usr/bin
+
+          BIN=""
+
+          if [ -f astra ]; then
+            BIN="astra"
+          else
+            BIN=$(find . -type f -name astra | head -n 1)
+          fi
+
+          if [ -z "$BIN" ]; then
+            echo "Binary astra not found"
+            exit 1
+          fi
+
+          cp "$BIN" package/usr/bin/astra
+
+          cat > package/CONTROL/control << EOF
+Package: astra-sm
+Version: 1.0
+Architecture: aarch64
+Maintainer: GitHub Actions
+Description: Astra-sm for CoreELEC
+EOF
+
+          cd package
+
+          tar czf control.tar.gz CONTROL
+          tar czf data.tar.gz usr
+
+          echo "2.0" > debian-binary
+
+          ar rcs ../astra-sm_1.0_aarch64.ipk \
+            debian-binary \
+            control.tar.gz \
+            data.tar.gz
+
+      - name: Upload package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: astra-sm_aarch64
+          path: astra-sm/astra-sm_1.0_aarch64.ipk
+
+      - name: Upload source tree for diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: astra-debug
+          name: astra-sm-debug-tree
           path: astra-sm
 
 
