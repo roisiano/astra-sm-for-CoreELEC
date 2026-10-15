@@ -1,12 +1,7 @@
 name: Build Astra-sm for CoreELEC (aarch64)
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch: # Permite ejecutar manualmente el flujo de trabajo.
 
 jobs:
   build-astra-sm:
