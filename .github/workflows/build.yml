@@ -8,11 +8,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Install build environment
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             build-essential \
@@ -27,7 +25,9 @@ jobs:
             libltdl-dev \
             gettext \
             m4 \
-            tree
+            tree \
+            file \
+            binutils
 
       - name: Clone Astra-sm
         run: |
@@ -38,66 +38,35 @@ jobs:
           ls -al
 
           echo "===== TREE ====="
-          tree -L 4 || true
+          tree -L 3 || true
 
-      - name: Locate build files
+      - name: Show build files
         run: |
           cd astra-sm
 
           echo "===== BUILD FILES ====="
 
-          find . -name "configure"
-          find . -name "configure.ac"
-          find . -name "configure.in"
-          find . -name "autogen.sh"
-          find . -name "bootstrap*"
-          find . -name "Makefile.am"
-          find . -name "Makefile.in"
+          find . -name configure
+          find . -name configure.ac
+          find . -name autogen.sh
+          find . -name Makefile.am
+          find . -name Makefile.in
 
-      - name: Show configure.ac
+      - name: Regenerate build system if needed
         run: |
           cd astra-sm
-
-          if [ -f configure.ac ]; then
-            echo "===== configure.ac ====="
-            sed -n '1,250p' configure.ac
-          fi
-
-      - name: Show autogen.sh
-        run: |
-          cd astra-sm
-
-          if [ -f autogen.sh ]; then
-            echo "===== autogen.sh ====="
-            sed -n '1,250p' autogen.sh
-          fi
-
-      - name: Generate configure scripts
-        run: |
-          cd astra-sm
-
-          set +e
-
-          if [ -f autogen.sh ]; then
-            chmod +x autogen.sh
-            bash -x ./autogen.sh
-          fi
 
           if [ ! -f configure ]; then
-            echo "Trying manual autotools..."
+            echo "Generating configure..."
 
-            libtoolize --force --copy || true
-            aclocal -I build-aux/m4 || aclocal || true
-            autoheader || true
-            automake --add-missing --copy || true
-            autoconf || true
+            chmod +x autogen.sh || true
+
+            if [ -f autogen.sh ]; then
+              ./autogen.sh
+            fi
           fi
 
-          echo
-          echo "===== GENERATED FILES ====="
-
-          find . -name configure
-          find . -name Makefile.in
+          ls -al
 
       - name: Configure
         run: |
@@ -105,11 +74,6 @@ jobs:
 
           export CC=aarch64-linux-gnu-gcc
           export CXX=aarch64-linux-gnu-g++
-
-          if [ ! -f configure ]; then
-            echo "configure not generated"
-            exit 1
-          fi
 
           chmod +x configure
 
@@ -121,47 +85,43 @@ jobs:
         run: |
           cd astra-sm
 
-          make -j$(nproc)
+          make -j"$(nproc)"
 
-      - name: Search generated binaries
+      - name: Search binaries
         if: always()
         run: |
           cd astra-sm
 
-          echo "===== EXECUTABLE FILES ====="
-
+          echo "===== EXECUTABLES ====="
           find . -type f -executable | sort
 
-      - name: Create package
-        if: success()
+          echo "===== ELF FILES ====="
+          find . -type f -exec file {} \; | grep ELF || true
+
+      - name: Create IPK
         run: |
           cd astra-sm
 
           mkdir -p package/CONTROL
           mkdir -p package/usr/bin
 
-          BIN=""
-
-          if [ -f astra ]; then
-            BIN="astra"
-          else
-            BIN=$(find . -type f -name astra | head -n 1)
-          fi
+          BIN=$(find . -type f -name astra | head -n 1)
 
           if [ -z "$BIN" ]; then
-            echo "Binary astra not found"
+            echo "ERROR: astra binary not found"
             exit 1
           fi
 
-          cp "$BIN" package/usr/bin/astra
+          echo "Using binary: $BIN"
 
-          cat > package/CONTROL/control << EOF
-Package: astra-sm
-Version: 1.0
-Architecture: aarch64
-Maintainer: GitHub Actions
-Description: Astra-sm for CoreELEC
-EOF
+          cp "$BIN" package/usr/bin/astra
+          chmod 755 package/usr/bin/astra
+
+          echo "Package: astra-sm" > package/CONTROL/control
+          echo "Version: 1.0" >> package/CONTROL/control
+          echo "Architecture: aarch64" >> package/CONTROL/control
+          echo "Maintainer: GitHub Actions" >> package/CONTROL/control
+          echo "Description: Astra-sm for CoreELEC" >> package/CONTROL/control
 
           cd package
 
@@ -175,14 +135,19 @@ EOF
             control.tar.gz \
             data.tar.gz
 
-      - name: Upload package
-        if: success()
+      - name: Verify package
+        run: |
+          cd astra-sm
+
+          ls -lh astra-sm_1.0_aarch64.ipk
+
+      - name: Upload IPK
         uses: actions/upload-artifact@v4
         with:
           name: astra-sm_aarch64
           path: astra-sm/astra-sm_1.0_aarch64.ipk
 
-      - name: Upload source tree for diagnostics
+      - name: Upload debug tree
         if: always()
         uses: actions/upload-artifact@v4
         with:
