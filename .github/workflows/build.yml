@@ -87,13 +87,9 @@ jobs:
             echo "Trying manual autotools..."
 
             libtoolize --force --copy || true
-
             aclocal -I build-aux/m4 || aclocal || true
-
             autoheader || true
-
             automake --add-missing --copy || true
-
             autoconf || true
           fi
 
@@ -192,5 +188,4 @@ EOF
         with:
           name: astra-sm-debug-tree
           path: astra-sm
-
 
